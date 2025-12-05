@@ -467,92 +467,27 @@ if not long_f.empty:
             mime="text/csv",
             use_container_width=True
         )
-# PDF Report with charts and paginated table
-# Ensure Kaleido is installed: pip install kaleido
+# Collect all your figures in a list
+chart_list = [fig_global, fig_reg, fig_bar, fig_map, fig_cty, fig_compare, fig_anom]
 
-def fig_to_img_bytes(fig, width=800, height=600):
-    """
-    Converts a Plotly figure to PNG bytes using Kaleido.
-    """
-    try:
-        img_bytes = fig.to_image(format="png", width=width, height=height, scale=2)
-        return img_bytes
-    except Exception as e:
-        st.error(f"Error converting figure to image: {e}")
-        return None
+# Function to generate HTML for all charts
+def generate_html_report(charts, title="Measles & Rubella Dashboard"):
+    html_parts = [f"<h1>{title}</h1>"]
+    for idx, fig in enumerate(charts):
+        # Convert Plotly figure to standalone HTML div
+        fig_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
+        html_parts.append(fig_html)
+        html_parts.append("<hr>")
+    return "<html><head><meta charset='utf-8'></head><body>" + "".join(html_parts) + "</body></html>"
 
-def generate_pdf_with_charts(df, disease_sel, year_range, chart_list):
-    """
-    Generates a PDF containing the filtered data and provided charts.
-    
-    chart_list: list of tuples (title:str, fig:plotly.graph_objects.Figure)
-    """
-    pdf = FPDF()
-    pdf.set_auto_page_break(auto=True, margin=15)
-    
-    # Cover page
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 20)
-    pdf.cell(0, 10, "Measles & Rubella Dashboard Report", ln=True, align="C")
-    pdf.ln(10)
-    pdf.set_font("Arial", '', 14)
-    pdf.multi_cell(0, 8, f"Disease metric: {disease_sel}\nYear range: {year_range[0]} - {year_range[1]}\nTotal rows in filtered dataset: {len(df):,}", align="C")
-    
-    # Charts
-    for title, fig in chart_list:
-        img_bytes = fig_to_img_bytes(fig)
-        if img_bytes:
-            pdf.add_page()
-            pdf.set_font("Arial", 'B', 16)
-            pdf.multi_cell(0, 10, title, align="C")
-            pdf.ln(5)
-            
-            # Save bytes to a temporary buffer
-            buf = io.BytesIO(img_bytes)
-            pdf.image(buf, x=10, y=30, w=pdf.w-20)
-    
-    # Return PDF as bytes
-    pdf_output = io.BytesIO()
-    pdf.output(pdf_output)
-    pdf_output.seek(0)
-    return pdf_output
+# Generate HTML content
+html_report = generate_html_report(chart_list)
 
-# --- PDF DOWNLOAD BUTTON ---
-st.markdown("---")
-st.subheader("📄 Download PDF Report")
-
-# Collect all charts you want in the PDF
-chart_list = []
-
-# Example: add global trend
-if 'fig_global' in locals():
-    chart_list.append(("Global Trend", fig_global))
-if 'fig_reg' in locals():
-    chart_list.append(("Regional Trends", fig_reg))
-if 'fig_bar' in locals():
-    chart_list.append(("Top Countries", fig_bar))
-if 'fig_map' in locals():
-    chart_list.append(("Geographic Distribution", fig_map))
-if 'fig_cty' in locals():
-    chart_list.append((f"{sel_cty} Country Trend", fig_cty))
-if 'fig_compare' in locals():
-    chart_list.append(("Country Comparison", fig_compare))
-if 'fig_anom' in locals():
-    chart_list.append(("Anomaly Detection", fig_anom))
-
-if chart_list:
-    pdf_file = generate_pdf_with_charts(
-        long_f.sort_values(["country","region","disease","year"]),
-        disease_sel, year_range, chart_list
-    )
-    
-    st.download_button(
-        label="📥 Download PDF",
-        data=pdf_file,
-        file_name=f"Measles_Rubella_Report_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
-        mime="application/pdf",
-        use_container_width=True
-    )
-else:
-    st.info("No charts available to include in the PDF.")
-    
+# Add Streamlit download button
+st.download_button(
+    label="📥 Download HTML Report",
+    data=html_report,
+    file_name=f"measles_rubella_report_{disease_sel}_{year_range[0]}-{year_range[1]}.html",
+    mime="text/html",
+    use_container_width=True
+)
