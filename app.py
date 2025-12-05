@@ -5,6 +5,9 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from fpdf import FPDF
+import io
+from PIL import Image
 
 from apputil import load_data_via_uploader
 
@@ -464,9 +467,7 @@ if not long_f.empty:
             use_container_width=True
         )
 # PDF Report with charts and paginated table
-from fpdf import FPDF
-import io
-from PIL import Image
+
 
 def fig_to_img_bytes(fig, width=800, height=600):
     """Convert Plotly figure to PNG bytes for PDF embedding."""
