@@ -468,126 +468,91 @@ if not long_f.empty:
             use_container_width=True
         )
 # PDF Report with charts and paginated table
-img_bytes = fig.to_image(format="png", width=800, height=600, scale=2)
-#pio.kaleido.scope.update(chromium_args=["--no-sandbox"])
-def fig_to_img_bytes(fig, width=800, height=600):
-    """Convert Plotly figure to PNG bytes for PDF embedding."""
-    img_bytes = fig.to_image(format="png", width=width, height=height, scale=2)
-    return io.BytesIO(img_bytes)
+# Ensure Kaleido is installed: pip install kaleido
 
-def generate_pdf_with_charts(df, disease_sel, year_range, chart_figs):
-    pdf = FPDF(orientation="P", unit="mm", format="A4")
+def fig_to_img_bytes(fig, width=800, height=600):
+    """
+    Converts a Plotly figure to PNG bytes using Kaleido.
+    """
+    try:
+        img_bytes = fig.to_image(format="png", width=width, height=height, scale=2)
+        return img_bytes
+    except Exception as e:
+        st.error(f"Error converting figure to image: {e}")
+        return None
+
+def generate_pdf_with_charts(df, disease_sel, year_range, chart_list):
+    """
+    Generates a PDF containing the filtered data and provided charts.
+    
+    chart_list: list of tuples (title:str, fig:plotly.graph_objects.Figure)
+    """
+    pdf = FPDF()
     pdf.set_auto_page_break(auto=True, margin=15)
     
-    # --- Cover Page ---
+    # Cover page
     pdf.add_page()
-    pdf.set_font("Arial", "B", 18)
-    pdf.cell(0, 12, "Measles & Rubella Report", ln=True, align="C")
-    pdf.ln(5)
-    pdf.set_font("Arial", "", 12)
-    pdf.cell(0, 8, f"Disease: {disease_sel}", ln=True)
-    pdf.cell(0, 8, f"Year range: {year_range[0]} - {year_range[1]}", ln=True)
-    pdf.ln(5)
+    pdf.set_font("Arial", 'B', 20)
+    pdf.cell(0, 10, "Measles & Rubella Dashboard Report", ln=True, align="C")
+    pdf.ln(10)
+    pdf.set_font("Arial", '', 14)
+    pdf.multi_cell(0, 8, f"Disease metric: {disease_sel}\nYear range: {year_range[0]} - {year_range[1]}\nTotal rows in filtered dataset: {len(df):,}", align="C")
     
-    # --- Add Charts ---
-    for title, fig in chart_figs:
-        pdf.add_page()
-        pdf.set_font("Arial", "B", 14)
-        pdf.multi_cell(0, 8, title, align="C")
-        pdf.ln(3)
-        
-        # Convert Plotly figure to image
+    # Charts
+    for title, fig in chart_list:
         img_bytes = fig_to_img_bytes(fig)
-        img = Image.open(img_bytes)
-        
-        # Resize image to fit page width
-        w, h = img.size
-        page_width = 190  # A4 width minus margins
-        page_height = page_width * h / w
-        img_bytes.seek(0)
-        pdf.image(img_bytes, x=10, y=30, w=page_width, h=page_height)
-    
-    # --- Add Data Table with pagination ---
-    pdf.add_page()
-    pdf.set_font("Arial", "B", 14)
-    pdf.cell(0, 8, "Data Table", ln=True, align="C")
-    pdf.ln(5)
-    
-    pdf.set_font("Arial", "B", 10)
-    headers = ["Country", "Region", "Disease", "Year", "Cases"]
-    col_widths = [38, 38, 38, 38, 38]
-    
-    # Function to add table header
-    def add_table_header():
-        pdf.set_font("Arial", "B", 10)
-        for i, h in enumerate(headers):
-            pdf.cell(col_widths[i], 8, h, border=1, align="C")
-        pdf.ln()
-        pdf.set_font("Arial", "", 10)
-    
-    add_table_header()
-    
-    for i, row in df.iterrows():
-        pdf.cell(col_widths[0], 8, str(row.get("country","")), border=1)
-        pdf.cell(col_widths[1], 8, str(row.get("region","")), border=1)
-        pdf.cell(col_widths[2], 8, str(row.get("disease","")), border=1)
-        pdf.cell(col_widths[3], 8, str(row.get("year","")), border=1)
-        pdf.cell(col_widths[4], 8, str(row.get("value","")), border=1)
-        pdf.ln()
-        # Check if page break is needed
-        if pdf.get_y() > 265:  # approximate bottom margin
+        if img_bytes:
             pdf.add_page()
-            add_table_header()
+            pdf.set_font("Arial", 'B', 16)
+            pdf.multi_cell(0, 10, title, align="C")
+            pdf.ln(5)
+            
+            # Save bytes to a temporary buffer
+            buf = io.BytesIO(img_bytes)
+            pdf.image(buf, x=10, y=30, w=pdf.w-20)
     
-    # Output to bytes
+    # Return PDF as bytes
     pdf_output = io.BytesIO()
     pdf.output(pdf_output)
     pdf_output.seek(0)
     return pdf_output
 
-# --- Prepare charts to include ---
+# --- PDF DOWNLOAD BUTTON ---
+st.markdown("---")
+st.subheader("📄 Download PDF Report")
+
+# Collect all charts you want in the PDF
 chart_list = []
 
-# Global trend chart
-try:
-    chart_list.append(("Global Trend Over Time", fig_global))
-except NameError:
-    pass
-
-# Regional trend chart
-try:
+# Example: add global trend
+if 'fig_global' in locals():
+    chart_list.append(("Global Trend", fig_global))
+if 'fig_reg' in locals():
     chart_list.append(("Regional Trends", fig_reg))
-except NameError:
-    pass
-
-# Country trend chart
-try:
-    chart_list.append((f"{sel_cty} Trend", fig_cty))
-except NameError:
-    pass
-
-# Country comparison chart
-try:
+if 'fig_bar' in locals():
+    chart_list.append(("Top Countries", fig_bar))
+if 'fig_map' in locals():
+    chart_list.append(("Geographic Distribution", fig_map))
+if 'fig_cty' in locals():
+    chart_list.append((f"{sel_cty} Country Trend", fig_cty))
+if 'fig_compare' in locals():
     chart_list.append(("Country Comparison", fig_compare))
-except NameError:
-    pass
-
-# Anomaly chart
-try:
+if 'fig_anom' in locals():
     chart_list.append(("Anomaly Detection", fig_anom))
-except NameError:
-    pass
 
-# --- PDF Download Button ---
-with col2:  # next to your CSV download
+if chart_list:
     pdf_file = generate_pdf_with_charts(
         long_f.sort_values(["country","region","disease","year"]),
         disease_sel, year_range, chart_list
     )
+    
     st.download_button(
-        "📄 Download PDF with Charts",
+        label="📥 Download PDF",
         data=pdf_file,
-        file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
+        file_name=f"Measles_Rubella_Report_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
         mime="application/pdf",
         use_container_width=True
     )
+else:
+    st.info("No charts available to include in the PDF.")
+    
