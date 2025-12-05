@@ -9,7 +9,7 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
-
+from pdf_report import generate_pdf_report
 from apputil import load_data_via_uploader
 
 # ---------- PDF EXPORT FUNCTION ----------
@@ -143,22 +143,39 @@ if not long_f.empty:
         st.write(f"Download filtered dataset ({len(long_f):,} rows)")
 
     # CSV download button
-    with col2:
-        st.download_button(
-            "📥 CSV",
-            data=long_f.sort_values(["country","region","disease","year"]).to_csv(index=False).encode("utf-8"),
-            file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.csv",
-            mime="text/csv",
-            use_container_width=True
-        )
+  #  with col2:
+  #      st.download_button(
+  #          "📥 CSV",
+  #          data=long_f.sort_values(["country","region","disease","year"]).to_csv(index=False).encode("utf-8"),
+  #          file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.csv",
+  #          mime="text/csv",
+  #          use_container_width=True
+  #      )
 
     # PDF download button
-    with col3:
-        pdf_buffer = df_to_pdf(long_f.sort_values(["country","region","disease","year"]))
-        st.download_button(
-            "📄 PDF",
-            data=pdf_buffer,
-            file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
-            mime="application/pdf",
-            use_container_width=True
-        )
+    #with col3:
+    #    pdf_buffer = generate_pdf_report(long_f.sort_values(["country","region","disease","year"]))
+    #    st.download_button(
+    #        "📄 PDF",
+    #        data=pdf_buffer,
+    #        file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
+    #        mime="application/pdf",
+    #        use_container_width=True
+    #    )
+csv_data = base_long.to_csv(index=False).encode("utf-8")
+st.download_button(
+    label="Download CSV",
+    data=csv_data,
+    file_name="measles_rubella_long.csv",
+    mime="text/csv"
+)
+
+# PDF download button — new addition
+pdf_bytes = generate_pdf_report(base_wide, base_long)
+st.download_button(
+    label="Download PDF",
+    data=pdf_bytes,
+    file_name="measles_rubella_report.pdf",
+    mime="application/pdf"
+)
+
