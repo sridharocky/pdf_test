@@ -467,45 +467,43 @@ if not long_f.empty:
             mime="text/csv",
             use_container_width=True
         )
-# Collect all your figures in a list
-chart_list = [fig_global, fig_reg, fig_bar, fig_map, fig_cty, fig_compare, fig_anom]
+# --- HTML Report Download ---
+st.markdown("---")
+st.subheader("💾 Download Charts as HTML Report")
+
+def generate_html_report(charts):
+    """Generates a single HTML string containing all Plotly charts"""
+    html_parts = []
+    for fig in charts:
+        if fig:
+            html_parts.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+    full_html = f"""
+    <html>
+    <head>
+        <title>Measles & Rubella Dashboard Report</title>
+    </head>
+    <body>
+        {"<hr>".join(html_parts)}
+    </body>
+    </html>
+    """
+    return full_html
+
+# Collect only charts that exist
 chart_list = []
+for name in ['fig_global','fig_reg','fig_bar','fig_map','fig_cty','fig_compare','fig_anom']:
+    if name in locals():
+        chart_list.append(locals()[name])
 
-if 'fig_global' in locals():
-    chart_list.append(fig_global)
-if 'fig_reg' in locals():
-    chart_list.append(fig_reg)
-if 'fig_bar' in locals():
-    chart_list.append(fig_bar)
-if 'fig_map' in locals():
-    chart_list.append(fig_map)
-if 'fig_cty' in locals():
-    chart_list.append(fig_cty)
-if 'fig_compare' in locals():
-    chart_list.append(fig_compare)
-if 'fig_anom' in locals():
-    chart_list.append(fig_anom)
-
-# Generate HTML report
-html_report = generate_html_report(chart_list)
-# Function to generate HTML for all charts
-def generate_html_report(charts, title="Measles & Rubella Dashboard"):
-    html_parts = [f"<h1>{title}</h1>"]
-    for idx, fig in enumerate(charts):
-        # Convert Plotly figure to standalone HTML div
-        fig_html = pio.to_html(fig, full_html=False, include_plotlyjs='cdn')
-        html_parts.append(fig_html)
-        html_parts.append("<hr>")
-    return "<html><head><meta charset='utf-8'></head><body>" + "".join(html_parts) + "</body></html>"
-
-# Generate HTML content
-html_report = generate_html_report(chart_list)
-
-# Add Streamlit download button
-st.download_button(
-    label="📥 Download HTML Report",
-    data=html_report,
-    file_name=f"measles_rubella_report_{disease_sel}_{year_range[0]}-{year_range[1]}.html",
-    mime="text/html",
-    use_container_width=True
-)
+if chart_list:
+    html_report = generate_html_report(chart_list)
+    st.download_button(
+        "📥 Download HTML Report",
+        data=html_report,
+        file_name=f"measles_rubella_report_{disease_sel}_{year_range[0]}-{year_range[1]}.html",
+        mime="text/html",
+        use_container_width=True
+    )
+else:
+    st.info("No charts available to generate report.")
+    
