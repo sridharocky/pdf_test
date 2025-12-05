@@ -474,8 +474,8 @@ if not long_f.empty:
             use_container_width=True
         )
 # PDF Report with charts and paginated table
-
-pio.kaleido.scope.update(chromium_args=["--no-sandbox"])
+img_bytes = fig.to_image(format="png", width=800, height=600, scale=2)
+#pio.kaleido.scope.update(chromium_args=["--no-sandbox"])
 def fig_to_img_bytes(fig, width=800, height=600):
     """Convert Plotly figure to PNG bytes for PDF embedding."""
     img_bytes = fig.to_image(format="png", width=width, height=height, scale=2)
