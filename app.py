@@ -5,37 +5,8 @@ import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from io import BytesIO
-from reportlab.lib.pagesizes import letter, landscape
-from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
-from reportlab.lib import colors
-from generate_pdf_report import generate_pdf_report
+
 from apputil import load_data_via_uploader
-
-# ---------- PDF EXPORT FUNCTION ----------
-def df_to_pdf(df):
-    buffer = BytesIO()
-    pdf = SimpleDocTemplate(buffer, pagesize=landscape(letter))
-
-    # Convert DataFrame to table data
-    data = [df.columns.tolist()] + df.values.tolist()
-
-    table = Table(data)
-    table.setStyle(TableStyle([
-        ("BACKGROUND", (0,0), (-1,0), colors.lightgrey),
-        ("TEXTCOLOR", (0,0), (-1,0), colors.black),
-        ("ALIGN", (0,0), (-1,-1), "LEFT"),
-        ("FONTNAME", (0,0), (-1,0), "Helvetica-Bold"),
-        ("FONTSIZE", (0,0), (-1,-1), 8),
-        ("BOTTOMPADDING", (0,0), (-1,0), 6),
-        ("GRID", (0,0), (-1,-1), 0.25, colors.grey),
-    ]))
-
-    pdf.build([table])
-    buffer.seek(0)
-    return buffer
-# -----------------------------------------
-
 
 st.set_page_config(page_title="Measles/Rubella Dashboard", layout="wide", initial_sidebar_state="expanded")
 
@@ -480,49 +451,63 @@ with tab4:
 # Download section
 st.markdown("---")
 st.subheader("💾 Download Data")
-
 if not long_f.empty:
-    col1, col2, col3 = st.columns([3,1,1])
-
+    col1, col2 = st.columns([3, 1])
     with col1:
         st.write(f"Download filtered dataset ({len(long_f):,} rows)")
+    with col2:
+        st.download_button(
+            "📥 Download CSV",
+            data=long_f.sort_values(["country","region","disease","year"]).to_csv(index=False).encode("utf-8"),
+            file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.csv",
+            mime="text/csv",
+            use_container_width=True
+        )
+# PDF Report generation
+from fpdf import FPDF
+import io
 
-    # CSV download button
-  #  with col2:
-  #      st.download_button(
-  #          "📥 CSV",
-  #          data=long_f.sort_values(["country","region","disease","year"]).to_csv(index=False).encode("utf-8"),
-  #          file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.csv",
-  #          mime="text/csv",
-  #          use_container_width=True
-  #      )
+def generate_pdf(df, disease_sel, year_range):
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 16)
+    pdf.cell(0, 10, "Measles & Rubella Report", ln=True, align="C")
+    pdf.set_font("Arial", "", 12)
+    pdf.cell(0, 8, f"Disease: {disease_sel}", ln=True)
+    pdf.cell(0, 8, f"Year range: {year_range[0]} - {year_range[1]}", ln=True)
+    pdf.ln(5)
+    
+    # Add table header
+    pdf.set_font("Arial", "B", 10)
+    col_widths = [30, 30, 30, 30]  # adjust based on your columns
+    headers = ["Country", "Region", "Disease", "Year", "Cases"]
+    for h in headers:
+        pdf.cell(38, 8, h, border=1, align="C")
+    pdf.ln()
+    
+    # Add table rows
+    pdf.set_font("Arial", "", 10)
+    for _, row in df.iterrows():
+        pdf.cell(38, 8, str(row.get("country","")), border=1)
+        pdf.cell(38, 8, str(row.get("region","")), border=1)
+        pdf.cell(38, 8, str(row.get("disease","")), border=1)
+        pdf.cell(38, 8, str(row.get("year","")), border=1)
+        pdf.cell(38, 8, str(row.get("value","")), border=1)
+        pdf.ln()
+    
+    # Output to bytes
+    pdf_output = io.BytesIO()
+    pdf.output(pdf_output)
+    pdf_output.seek(0)
+    return pdf_output
 
-    # PDF download button
-    #with col3:
-    #    pdf_buffer = generate_pdf_report(long_f.sort_values(["country","region","disease","year"]))
-    #    st.download_button(
-    #        "📄 PDF",
-    #        data=pdf_buffer,
-    #        file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
-    #        mime="application/pdf",
-    #        use_container_width=True
-    #    )
-csv_data = base_long.to_csv(index=False).encode("utf-8")
-st.download_button(
-    label="Download CSV",
-    data=csv_data,
-    file_name="measles_rubella_long.csv",
-    mime="text/csv"
-)
-
-# PDF download button — new addition
-pdf_bytes = generate_pdf_report(base_wide, base_long)
-st.download_button(
-    label="Download PDF",
-    data=pdf_bytes,
-    file_name="measles_rubella_report.pdf",
-    mime="application/pdf"
-)
-
-
-
+with col2:  # next to your CSV download button
+    pdf_file = generate_pdf(long_f.sort_values(["country","region","disease","year"]), disease_sel, year_range)
+    st.download_button(
+        "📄 Download PDF",
+        data=pdf_file,
+        file_name=f"measles_rubella_{disease_sel}_{year_range[0]}-{year_range[1]}.pdf",
+        mime="application/pdf",
+        use_container_width=True
+    )
+        
