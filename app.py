@@ -471,13 +471,17 @@ if not long_f.empty:
 st.markdown("---")
 st.subheader("💾 Download Charts as HTML Report")
 
-def generate_html_report(charts):
-    """Generates a single HTML string containing all Plotly charts with spacing"""
+def generate_html_report_with_titles(charts, chart_titles):
+    """Generates a single HTML string containing all Plotly charts with spacing and titles"""
     html_parts = []
-    for fig in charts:
+    for fig, title in zip(charts, chart_titles):
         if fig:
-            # Wrap each chart in a div with margin-bottom for spacing
-            html_parts.append(f"<div style='margin-bottom:50px'>{fig.to_html(full_html=False, include_plotlyjs='cdn')}</div>")
+            html_parts.append(f"""
+            <div style='margin-bottom:150px'>
+                <h2 style='text-align:center'>{title}</h2>
+                {fig.to_html(full_html=False, include_plotlyjs='cdn')}
+            </div>
+            """)
     full_html = f"""
     <html>
     <head>
@@ -492,12 +496,25 @@ def generate_html_report(charts):
 
 # Collect only charts that exist
 chart_list = []
-for name in ['fig_global','fig_reg','fig_bar','fig_map','fig_cty','fig_compare','fig_anom']:
+chart_titles = []
+
+chart_mapping = {
+    'fig_global': "🌐 Global Trend",
+    'fig_reg': "🌍 Regional Trends",
+    'fig_bar': "🏆 Top Countries by Cases",
+    'fig_map': "🗺️ Geographic Distribution",
+    'fig_cty': "📊 Country Trend",
+    'fig_compare': "⚖️ Country Comparison",
+    'fig_anom': "⚠️ Anomaly Detection"
+}
+
+for name, title in chart_mapping.items():
     if name in locals():
         chart_list.append(locals()[name])
+        chart_titles.append(title)
 
 if chart_list:
-    html_report = generate_html_report(chart_list)
+    html_report = generate_html_report_with_titles(chart_list, chart_titles)
     col1, col2 = st.columns([3, 1])
     with col1:
         st.write(f"Download filtered dataset ({len(long_f):,} rows)")
