@@ -8,12 +8,6 @@ from plotly.subplots import make_subplots
 from fpdf import FPDF
 import io
 import plotly.io as pio
-
-# Configure Kaleido safely
-pio.kaleido.scope.default_format = "png"
-pio.kaleido.scope.default_width = 800
-pio.kaleido.scope.default_height = 600
-
 from PIL import Image
 
 from apputil import load_data_via_uploader
