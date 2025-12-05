@@ -469,7 +469,25 @@ if not long_f.empty:
         )
 # Collect all your figures in a list
 chart_list = [fig_global, fig_reg, fig_bar, fig_map, fig_cty, fig_compare, fig_anom]
+chart_list = []
 
+if 'fig_global' in locals():
+    chart_list.append(fig_global)
+if 'fig_reg' in locals():
+    chart_list.append(fig_reg)
+if 'fig_bar' in locals():
+    chart_list.append(fig_bar)
+if 'fig_map' in locals():
+    chart_list.append(fig_map)
+if 'fig_cty' in locals():
+    chart_list.append(fig_cty)
+if 'fig_compare' in locals():
+    chart_list.append(fig_compare)
+if 'fig_anom' in locals():
+    chart_list.append(fig_anom)
+
+# Generate HTML report
+html_report = generate_html_report(chart_list)
 # Function to generate HTML for all charts
 def generate_html_report(charts, title="Measles & Rubella Dashboard"):
     html_parts = [f"<h1>{title}</h1>"]
