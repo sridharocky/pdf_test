@@ -472,18 +472,19 @@ st.markdown("---")
 st.subheader("💾 Download Charts as HTML Report")
 
 def generate_html_report(charts):
-    """Generates a single HTML string containing all Plotly charts"""
+    """Generates a single HTML string containing all Plotly charts with spacing"""
     html_parts = []
     for fig in charts:
         if fig:
-            html_parts.append(fig.to_html(full_html=False, include_plotlyjs='cdn'))
+            # Wrap each chart in a div with margin-bottom for spacing
+            html_parts.append(f"<div style='margin-bottom:50px'>{fig.to_html(full_html=False, include_plotlyjs='cdn')}</div>")
     full_html = f"""
     <html>
     <head>
         <title>Measles & Rubella Dashboard Report</title>
     </head>
-    <body>
-        {"<hr>".join(html_parts)}
+    <body style='font-family:sans-serif;'>
+        {"".join(html_parts)}
     </body>
     </html>
     """
@@ -497,7 +498,11 @@ for name in ['fig_global','fig_reg','fig_bar','fig_map','fig_cty','fig_compare',
 
 if chart_list:
     html_report = generate_html_report(chart_list)
-    st.download_button(
+    col1, col2 = st.columns([3, 1])
+    with col1:
+        st.write(f"Download filtered dataset ({len(long_f):,} rows)")
+    with col2:
+        st.download_button(
         "📥 Download HTML Report",
         data=html_report,
         file_name=f"measles_rubella_report_{disease_sel}_{year_range[0]}-{year_range[1]}.html",
@@ -506,4 +511,3 @@ if chart_list:
     )
 else:
     st.info("No charts available to generate report.")
-    
