@@ -9,7 +9,7 @@ from io import BytesIO
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle
 from reportlab.lib import colors
-from pdf_report import generate_pdf_report
+from generate_pdf_report import generate_pdf_report
 from apputil import load_data_via_uploader
 
 # ---------- PDF EXPORT FUNCTION ----------
@@ -178,4 +178,5 @@ st.download_button(
     file_name="measles_rubella_report.pdf",
     mime="application/pdf"
 )
+
 
